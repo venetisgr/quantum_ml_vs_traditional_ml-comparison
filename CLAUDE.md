@@ -20,6 +20,7 @@ scikit-learn, PyTorch, XGBoost, Optuna, pandas, matplotlib. Pin all versions in
 - `analysis/` — stats + plotting scripts; every thesis figure is generated here
 - `results/` — CSV/JSON logs (small, git-tracked)
 - `notebooks/` — exploration only, never source of truth
+- `thesis/` — LaTeX source of the written thesis (created in Phase 3, weeks 17+)
 
 ## Commands
 - Setup: `conda env create -f environment.yml`
@@ -55,3 +56,6 @@ scikit-learn, PyTorch, XGBoost, Optuna, pandas, matplotlib. Pin all versions in
 - Write tests for loaders and the runner; run `pytest` after changes.
 - Small, frequent commits with messages like `E2: add ZZ feature map kernel`.
 - When an experiment milestone completes, update STATUS.md in the same commit.
+- If I correct you about the same thing twice, propose one imperative line to add to
+  this file (wait for my approval). Keep CLAUDE.md under ~80 lines; long material
+  belongs in docs/.
