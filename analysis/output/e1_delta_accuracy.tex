@@ -1,0 +1,18 @@
+\begin{table}[ht]
+\centering
+\caption{Tuning gain: tuned minus default mean accuracy.}
+\label{tab:e1-delta-accuracy}
+\begin{tabular}{lrrrrrrr}
+\toprule
+dataset & knn & logreg & mlp & rf & svm\_linear & svm\_rbf & xgboost \\
+\midrule
+banknote & 0.0 & 0.009 & 0.005 & -0.0 & 0.007 & 0.0 & 0.002 \\
+breast\_cancer & 0.0 & 0.002 & 0.0 & -0.004 & -0.001 & 0.001 & 0.005 \\
+circles & 0.002 & -0.001 & 0.227 & -0.006 & -0.002 & -0.0 & -0.001 \\
+digits\_3v5 & 0.001 & 0.0 & 0.003 & -0.001 & 0.0 & 0.004 & 0.005 \\
+iris\_binary & 0.0 & 0.012 & -0.008 & 0.014 & 0.0 & 0.012 & 0.002 \\
+moons & 0.002 & 0.0 & 0.055 & -0.002 & 0.001 & 0.006 & -0.003 \\
+wine\_binary & 0.002 & -0.002 & 0.008 & -0.002 & 0.017 & -0.008 & 0.025 \\
+\bottomrule
+\end{tabular}
+\end{table}

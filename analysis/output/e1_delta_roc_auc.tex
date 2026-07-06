@@ -1,0 +1,18 @@
+\begin{table}[ht]
+\centering
+\caption{Tuning gain: tuned minus default mean roc auc.}
+\label{tab:e1-delta-roc_auc}
+\begin{tabular}{lrrrrrrr}
+\toprule
+dataset & knn & logreg & mlp & rf & svm\_linear & svm\_rbf & xgboost \\
+\midrule
+banknote & 0.001 & 0.0 & 0.0 & 0.0 & -0.0 & 0.0 & 0.0 \\
+breast\_cancer & 0.0 & 0.0 & -0.0 & -0.0 & -0.0 & 0.001 & 0.001 \\
+circles & -0.001 & 0.001 & 0.213 & -0.001 & 0.001 & -0.001 & -0.004 \\
+digits\_3v5 & 0.0 & 0.0 & 0.0 & -0.0 & 0.0 & 0.0 & 0.0 \\
+iris\_binary & 0.001 & 0.002 & -0.005 & 0.002 & -0.018 & -0.001 & 0.012 \\
+moons & 0.006 & -0.0 & 0.017 & -0.004 & -0.0 & 0.0 & -0.003 \\
+wine\_binary & 0.009 & 0.0 & 0.0 & -0.0 & -0.0 & -0.0 & 0.006 \\
+\bottomrule
+\end{tabular}
+\end{table}
