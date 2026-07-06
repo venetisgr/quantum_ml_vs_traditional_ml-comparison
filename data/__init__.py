@@ -13,11 +13,13 @@ from typing import Callable
 import numpy as np
 
 from data.images import load_digits_3v5
-from data.synthetic import load_circles, load_moons
+from data.synthetic import load_circles, load_moons, load_xor_gauss
 from data.tabular import (
     load_banknote,
     load_breast_cancer,
+    load_heart_statlog,
     load_iris_binary,
+    load_pima,
     load_wine_binary,
 )
 
@@ -26,11 +28,14 @@ Loader = Callable[[], tuple[np.ndarray, np.ndarray, dict]]
 DATASETS: dict[str, Loader] = {
     "moons": load_moons,
     "circles": load_circles,
+    "xor_gauss": load_xor_gauss,
     "iris_binary": load_iris_binary,
     "wine_binary": load_wine_binary,
     "breast_cancer": load_breast_cancer,
     "digits_3v5": load_digits_3v5,
     "banknote": load_banknote,
+    "pima": load_pima,
+    "heart_statlog": load_heart_statlog,
 }
 
 

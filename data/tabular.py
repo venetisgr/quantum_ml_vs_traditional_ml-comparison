@@ -87,6 +87,42 @@ def load_banknote() -> tuple[np.ndarray, np.ndarray, dict]:
     )
 
 
+def load_pima() -> tuple[np.ndarray, np.ndarray, dict]:
+    """Pima Indians Diabetes (OpenML data_id 37) — hard tier, E1 extension.
+
+    768×8, mildly imbalanced (500/268), noisy clinical measurements; tuned
+    classical models plateau around 0.75 balanced accuracy in the literature.
+    """
+    bunch = _sk_datasets.fetch_openml(data_id=37, as_frame=False)
+    y = (bunch.target == "tested_positive").astype(np.int64)
+    return finalize(
+        bunch.data,
+        y,
+        name="pima",
+        source="sklearn.datasets.fetch_openml",
+        params={"data_id": 37},
+        label_map={"0": "tested_negative", "1": "tested_positive"},
+    )
+
+
+def load_heart_statlog() -> tuple[np.ndarray, np.ndarray, dict]:
+    """Heart disease, Statlog variant of Cleveland (OpenML data_id 53) — hard tier.
+
+    270×13, no missing values (the cleaned Cleveland release groundwork §5
+    refers to); typical tuned accuracy ~0.83.
+    """
+    bunch = _sk_datasets.fetch_openml(data_id=53, as_frame=False)
+    y = (bunch.target == "present").astype(np.int64)
+    return finalize(
+        bunch.data,
+        y,
+        name="heart_statlog",
+        source="sklearn.datasets.fetch_openml",
+        params={"data_id": 53},
+        label_map={"0": "absent", "1": "present"},
+    )
+
+
 def wine_pair_probe(n_splits: int = 5, seed: int = 0) -> dict[tuple[int, int], float]:
     """Difficulty probe for the wine pair decision (run: python -m data.tabular).
 

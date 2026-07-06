@@ -23,6 +23,9 @@ N_SAMPLES = 500
 MOONS_NOISE = 0.2
 CIRCLES_NOISE = 0.1
 CIRCLES_FACTOR = 0.5
+XOR_N_SAMPLES = 800
+XOR_INFORMATIVE = 4
+XOR_NOISE_DIMS = 2
 
 
 def load_moons() -> tuple[np.ndarray, np.ndarray, dict]:
@@ -58,4 +61,31 @@ def load_circles() -> tuple[np.ndarray, np.ndarray, dict]:
             "random_state": GENERATION_SEED,
         },
         label_map={"0": "outer circle", "1": "inner circle"},
+    )
+
+
+def load_xor_gauss() -> tuple[np.ndarray, np.ndarray, dict]:
+    """Gaussian XOR: sign-parity of 4 informative dims + 2 pure-noise distractors.
+
+    Added 2026-07-06 as part of the hard tier (E1 extension): the boundary is
+    the 4-D sign-parity surface — invisible to linear models, hostile to
+    memorizers since no neighbourhood is label-pure — and the distractor
+    dimensions punish distance-based methods. Labels are deterministic; the
+    difficulty is structural, not label noise.
+    """
+    rng = np.random.default_rng(GENERATION_SEED)
+    X = rng.standard_normal((XOR_N_SAMPLES, XOR_INFORMATIVE + XOR_NOISE_DIMS))
+    y = (np.prod(np.sign(X[:, :XOR_INFORMATIVE]), axis=1) < 0).astype(np.int64)
+    return finalize(
+        X,
+        y,
+        name="xor_gauss",
+        source="data.synthetic.load_xor_gauss (numpy default_rng)",
+        params={
+            "n_samples": XOR_N_SAMPLES,
+            "informative_dims": XOR_INFORMATIVE,
+            "noise_dims": XOR_NOISE_DIMS,
+            "random_state": GENERATION_SEED,
+        },
+        label_map={"0": "even sign-parity", "1": "odd sign-parity"},
     )

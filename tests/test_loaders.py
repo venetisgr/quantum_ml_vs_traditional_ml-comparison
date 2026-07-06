@@ -12,11 +12,14 @@ ALL_DATASETS = sorted(DATASETS)
 EXPECTED = {
     "moons": (500, 2, 250, 250),
     "circles": (500, 2, 250, 250),
+    "xor_gauss": (800, 6, 420, 380),
     "iris_binary": (100, 4, 50, 50),
     "wine_binary": (119, 13, 71, 48),
     "breast_cancer": (569, 30, 212, 357),
     "digits_3v5": (365, 64, 183, 182),
     "banknote": (1372, 4, 762, 610),
+    "pima": (768, 8, 500, 268),
+    "heart_statlog": (270, 13, 150, 120),
 }
 
 
