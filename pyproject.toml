@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qml-thesis"
+version = "0.1.0"
+description = "Classical vs quantum vs hybrid ML under matched conditions (Master's thesis code)"
+requires-python = ">=3.11"
+
+[tool.setuptools]
+packages = ["data", "models", "experiments"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

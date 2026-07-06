@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Tool caches
+.pytest_cache/
+.ipynb_checkpoints/
+.mypy_cache/
+.ruff_cache/
+
+# OS / editors
+.DS_Store
+.vscode/
+.idea/
+
+# NOTE: data/splits/ and results/ are deliberately git-tracked — the fairness
+# protocol depends on them (CLAUDE.md, docs/groundwork.md §8). Never ignore them.
