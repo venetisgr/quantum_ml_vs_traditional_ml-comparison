@@ -1,0 +1,38 @@
+# Pinned environment for the QML thesis (CLAUDE.md stack; docs/groundwork.md §3).
+# All direct dependencies resolved and import-tested TOGETHER on 2026-07-06
+# (Python 3.11, Linux): pennylane-qiskit 0.45.0 loads cleanly against
+# qiskit 2.3.0, and a lightning.qubit device constructs. The exact transitive
+# freeze of that test environment is documented in requirements-lock.txt.
+#
+# torch: the plain PyPI wheel; CPU is sufficient for this thesis's <= 20-qubit
+# regime (groundwork §3). On Linux the default wheel bundles CUDA libs — for a
+# slimmer CPU-only install add: --extra-index-url https://download.pytorch.org/whl/cpu
+name: qml-thesis
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      # scientific core
+      - numpy==2.4.6
+      - scipy==1.17.1
+      - scikit-learn==1.9.0
+      - pandas==3.0.3
+      - matplotlib==3.11.0
+      - pyyaml==6.0.3
+      # classical ML
+      - torch==2.12.1
+      - xgboost==3.2.0
+      - optuna==4.9.0
+      # quantum stack
+      - pennylane==0.45.1
+      - pennylane-lightning==0.45.0
+      - pennylane-qiskit==0.45.0
+      - qiskit==2.3.0
+      - qiskit-machine-learning==0.9.0
+      - qiskit-aer==0.17.2
+      - qiskit-ibm-runtime==0.45.1
+      # tooling
+      - pytest==9.1.1
+      - ipykernel==7.3.0
