@@ -1,0 +1,14 @@
+# E0 smoke test: a minimal classical model through the full pipeline on moons.
+# Exercises: stored-split loading, [0, π] scaling fit on train folds only,
+# per-seed determinism, and append-only CSV logging with config hash.
+# This is an infrastructure check, NOT a thesis result (baselines land in E1).
+experiment: e0_smoke
+description: E0 infrastructure smoke run — logistic regression on moons
+dataset: moons
+model: logreg
+model_params:
+  C: 1.0
+  max_iter: 2000
+regime: classical
+seeds: [0, 1, 2, 3, 4]
+folds: [0, 1, 2, 3, 4]
