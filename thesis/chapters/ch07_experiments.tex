@@ -1,0 +1,61 @@
+\chapter{Experiments and Results}
+\label{ch:experiments}
+
+\todonote{Written last (user decision 2026-07-07). One section per experiment
+family, each in the fixed format: hypothesis (pre-registered in
+docs/groundwork.md §9) $\to$ setup $\to$ results $\to$ discussion. Every
+figure/table is included from analysis/output/, never typed.}
+
+\section{E1: Classical baseline sweep}
+\label{sec:exp-e1}
+% COMPLETE in the repository (results/e1_baselines*.csv; tables in
+% analysis/output/). Prose pending. Facts to carry into the text:
+% - 7 models x 10 datasets x 50-trial matched tuning; defaults variant too.
+% - \resultref{master table: analysis/output/e1_master_tuned_balanced_accuracy}
+% - Sanity signatures: linear models at chance on circles/xor_gauss; tuning
+%   gains small except mlp/circles (+0.23) and svm_rbf/xor_gauss (+0.137).
+% - Difficulty spectrum: banknote saturated (1.000) ... pima 0.727,
+%   xor_gauss 0.690 -> headroom argument for E2+.
+
+\section{E2: Quantum kernels}
+\label{sec:exp-e2}
+% QSVM (angle, ZZ, depth 1-2) vs RBF-SVM on identical splits; Gram matrices;
+% kernel-target alignment; geometric difference (Huang et al.); concentration
+% vs qubit count. Named hypothesis: ZZ map on xor_gauss.
+
+\section{E3: VQC grid}
+\label{sec:exp-e3}
+% {angle, ZZ} x {hardware-efficient, strongly entangling} x depth {1,3,5};
+% Adam(parameter-shift) vs SPSA vs COBYLA; training curves; MLP parameter
+% matching enforced here.
+
+\section{E4: Encoding ablation and Fourier expressivity}
+\label{sec:exp-e4}
+% Same ansatz, different encodings; 1-D function fit demo showing accessible
+% frequency spectrum growth with re-uploads (Schuld et al. 2021).
+
+\section{E5: Hybrid architectures}
+\label{sec:exp-e5}
+% PCA->VQC vs raw VQC; CNN->quantum head vs matched dense head; dressed
+% quantum circuit transfer learning; controls parameter-matched.
+
+\section{E6: Trainability study}
+\label{sec:exp-e6}
+% Gradient variance vs qubits (2-16) and depth; local vs global cost;
+% log-scale variance plot reproducing barren-plateau scaling.
+
+\section{E7: Sample efficiency}
+\label{sec:exp-e7}
+% Learning curves (n_train in {20..1000}) for best classical / quantum /
+% hybrid per dataset, on training-side subsamples of the stored splits.
+
+\section{E8: Noise ladder and hardware validation}
+\label{sec:exp-e8}
+% exact -> shots (1k-10k) -> calibrated device noise -> IBM QPU (2-3 best
+% small models, readout mitigation); degradation waterfall; backend,
+% calibration date, and job ids logged.
+
+\section{E9: Resource accounting}
+\label{sec:exp-e9}
+% Wall-clock, parameter counts, circuit depth, total shots; cost-vs-accuracy
+% scatter across all families.

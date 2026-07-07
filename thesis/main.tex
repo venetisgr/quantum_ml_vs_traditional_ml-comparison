@@ -1,0 +1,59 @@
+% Master's thesis — classical vs quantum vs hybrid machine learning.
+% Chapter map and page budgets: docs/groundwork.md §2.
+%
+% TEMPLATE NOTE: this preamble is a deliberately plain, template-agnostic base
+% (university template = open question 1 in groundwork §12). When the official
+% class arrives, replace this preamble; the chapter files are plain LaTeX and
+% port unchanged.
+\documentclass[11pt,a4paper,oneside]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=2.6cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[hidelinks]{hyperref}
+
+\input{macros}
+
+\title{Classical, Quantum, and Hybrid Machine Learning:\\
+       A Systematic Empirical Comparison under Matched Conditions}
+\author{\todonote{Author name}\\ \todonote{Institution, programme}}
+\date{\todonote{Submission date}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\todonote{Abstract is written last (week 19). One paragraph each: context and
+the hype--evidence tension; the five research questions; the matched-conditions
+methodology (shared splits, matched tuning budgets, parameter matching,
+regime-separated evaluation); headline empirical findings; the honest-framing
+conclusion about NISQ-scale competitiveness rather than quantum advantage.}
+\end{abstract}
+
+\tableofcontents
+
+\input{chapters/ch01_introduction}
+\input{chapters/ch02_classical_ml}
+\input{chapters/ch03_quantum_computing}
+\input{chapters/ch04_qml}
+\input{chapters/ch05_related_work}
+\input{chapters/ch06_methodology}
+\input{chapters/ch07_experiments}
+\input{chapters/ch08_discussion}
+\input{chapters/ch09_conclusion}
+
+\appendix
+\input{chapters/appendix}
+
+\bibliographystyle{abbrvnat}
+\bibliography{refs}
+
+\end{document}

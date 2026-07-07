@@ -1,0 +1,351 @@
+\chapter{Quantum Machine Learning}
+\label{ch:qml}
+
+This chapter develops the quantum and hybrid model families that
+Chapters~\ref{ch:methodology} and \ref{ch:experiments} put to the test. The
+running theme is that every design choice --- how data enter the circuit, how
+the trainable part is shaped, what is measured, and how parameters are
+optimized --- has consequences that are now reasonably well understood
+theoretically, and that these consequences (expressivity spectra, kernel
+equivalences, barren plateaus, concentration) directly generate the hypotheses
+of the experimental programme.
+
+\section{A taxonomy of quantum machine learning}
+\label{sec:qml-taxonomy}
+
+Following the scheme popularized by \citet{schuld2021book}, QML approaches are
+classified by whether the \emph{data} and the \emph{processing device} are
+classical (C) or quantum (Q). \textbf{CC} is classical ML, possibly
+quantum-inspired. \textbf{CQ} --- classical data, quantum processing --- is
+the subject of this thesis: feature vectors are encoded into quantum states,
+processed by circuits, and read out by measurement. \textbf{QC} uses
+classical ML to support quantum experiments (calibration, tomography,
+control), and \textbf{QQ} learns on inherently quantum data, the setting where
+the strongest advantage arguments live \citep{huang2022advantage}; both are
+outside the experimental scope and appear only in the outlook.
+
+Within CQ, this thesis studies the two dominant paradigms --- \emph{quantum
+kernel methods} (Section~\ref{sec:qml-kernels}) and \emph{variational quantum
+circuits} (Sections~\ref{sec:qml-vqa}--\ref{sec:qml-architectures}) --- plus
+\emph{hybrid architectures} that compose them with classical networks
+(Section~\ref{sec:qml-hybrid}). The taxonomy earns its place beyond
+bookkeeping with one observation: a quantum kernel inside a classical SVM is
+already a hybrid CQ pipeline, so ``quantum versus hybrid versus classical'' is
+a spectrum of composition choices, not three disjoint species.
+
+\section{Data encoding}
+\label{sec:qml-encoding}
+
+A CQ model must first map $\bm{x} \in \R^d$ to an $n$-qubit state
+$\ket{\phi(\bm{x})} = \enc{\bm{x}} \ket{0}^{\otimes n}$ via an encoding
+(feature-map) circuit $\enc{\bm{x}}$. This choice is not preprocessing
+trivia: it fixes the geometry of the data in Hilbert space, hence the kernel
+the model can realize and the function class it can express
+\citep{schuld2019hilbert, schuld2021fourier, larose2020encodings}.
+
+\paragraph{Basis encoding} writes a binary string into the computational
+basis, $\bm{b} \mapsto \ket{\bm{b}}$. It is qubit-hungry for continuous data
+and is used here only conceptually.
+
+\paragraph{Angle encoding} uses one feature per qubit as a rotation angle,
+\begin{equation}
+  \enc{\bm{x}} = \bigotimes_{j=1}^{d} R_{Y}(x_j),
+  \qquad
+  \ket{\phi(\bm{x})} = \bigotimes_{j=1}^{d}
+    \Bigl( \cos\tfrac{x_j}{2}\ket{0} + \sin\tfrac{x_j}{2}\ket{1} \Bigr),
+  \label{eq:angle-encoding}
+\end{equation}
+requiring $n = d$ qubits and depth 1. Because the rotation is $2\pi$-periodic,
+features must be confined to a fixed interval to avoid wrap-around aliasing;
+this motivates the thesis-wide convention of min--max scaling every feature to
+$[0, \pi]$, fit on training folds only (Chapter~\ref{ch:methodology}).
+Unentangled angle encoding produces a product state, and its induced kernel
+factorizes into a product of per-feature $\cos$ terms --- a useful reminder
+that ``quantum'' does not yet mean ``hard to simulate.''
+
+\paragraph{Entangled feature maps.} Expressive power beyond products comes
+from interleaving encodings with entanglers. The canonical example is the
+ZZ (IQP-style) feature map of \citet{havlicek2019kernels},
+\begin{equation}
+  \enc{\bm{x}}
+  = \Bigl[ U_{\Phi}(\bm{x})\, H^{\otimes n} \Bigr]^{L},
+  \qquad
+  U_{\Phi}(\bm{x}) = \exp\Bigl( i \sum_{j} \phi_j(\bm{x})\, Z_j
+      + i \sum_{j < k} \phi_{jk}(\bm{x})\, Z_j Z_k \Bigr),
+  \label{eq:zz-map}
+\end{equation}
+with the standard choices $\phi_j(\bm{x}) = x_j$ and
+$\phi_{jk}(\bm{x}) = (\pi - x_j)(\pi - x_k)$, repeated $L$ times. The
+product terms couple pairs of features through entangling phases ---
+conjectured hard to simulate classically at depth $L \ge 2$ --- and make
+parity-like feature interactions natively available, which is precisely why
+the sign-parity benchmark task of Chapter~\ref{ch:methodology} is the
+designated stress test for this family.
+
+\paragraph{Amplitude encoding} stores $\bm{x}$ (padded, normalized) in the
+amplitudes of \eqref{eq:nqubit}: $2^n$ features fit in $n$ qubits, but state
+preparation generally costs depth exponential in $n$ and the encoding is
+nonlinear in $\bm{x}$ through normalization. It appears in this thesis only
+as a comparison point in the encoding ablation (E4).
+
+\paragraph{Data re-uploading} repeats the encoding several times, interleaved
+with trainable blocks \citep{perezsalinas2020reuploading}:
+\begin{equation}
+  \ket{\phi_{\bm{\theta}}(\bm{x})}
+  = \prod_{l=1}^{L} \Bigl[ W_l(\bm{\theta}_l)\, \enc{\bm{x}} \Bigr]
+    \ket{0}^{\otimes n}.
+  \label{eq:reuploading}
+\end{equation}
+Re-uploading is not a redundancy: it provably enlarges the model's frequency
+content, as the following Fourier picture makes precise.
+
+\paragraph{The Fourier lens on expressivity.}
+\citet{schuld2021fourier} showed that any model of the form
+$f_{\bm{\theta}}(\bm{x}) = \bra{\phi_{\bm{\theta}}(\bm{x})} M
+\ket{\phi_{\bm{\theta}}(\bm{x})}$ whose encoding gates are generated by fixed
+Hamiltonians, $e^{-i x_j H_j}$, is a generalized trigonometric polynomial
+\begin{equation}
+  f_{\bm{\theta}}(\bm{x})
+  = \sum_{\bm{\omega} \in \Omega} c_{\bm{\omega}}(\bm{\theta}, M)\,
+    e^{i \bm{\omega}^{\top} \bm{x}},
+  \label{eq:fourier}
+\end{equation}
+whose frequency set $\Omega$ is determined \emph{entirely by the encoding} ---
+the pairwise differences of eigenvalue sums of the $H_j$ --- while the
+trainable parts and the observable only shape the coefficients
+$c_{\bm{\omega}}$. For Pauli-rotation encodings, one upload per feature yields
+frequencies $\{-1, 0, 1\}$ per dimension; $L$ uploads extend this to
+$\{-L, \dots, L\}$. Three consequences organize much of what follows:
+(i) a single-upload angle-encoded model is, in each feature, a degree-one
+trigonometric function --- expressivity claims must be checked against this
+sobering baseline; (ii) re-uploading, not deeper ansätze, is the lever that
+adds frequencies; and (iii) expressivity is decoupled from trainability ---
+enlarging $\Omega$ says nothing about whether $c_{\bm{\omega}}$ can be
+efficiently fit (Section~\ref{sec:qml-trainability}). Experiment E4
+demonstrates \eqref{eq:fourier} directly by fitting one-dimensional target
+functions with increasing upload counts.
+
+\section{Variational quantum algorithms}
+\label{sec:qml-vqa}
+
+The variational paradigm \citep{cerezo2021vqa} builds models from three
+components: an encoding $\enc{\bm{x}}$, a trainable ansatz $\ansatz$, and a
+measured observable $M$,
+\begin{equation}
+  f_{\bm{\theta}}(\bm{x})
+  = \bra{0^{\otimes n}} \enc{\bm{x}}^{\dagger}\, W^{\dagger}(\bm{\theta})\,
+    M\, W(\bm{\theta})\, \enc{\bm{x}} \ket{0^{\otimes n}},
+  \label{eq:vqc-model}
+\end{equation}
+trained by a classical optimizer minimizing an empirical loss
+$C(\bm{\theta}) = \tfrac{1}{m} \sum_i \ell\bigl( f_{\bm{\theta}}(\bm{x}_i),
+y_i \bigr)$ --- a quantum--classical loop in which the quantum device only
+evaluates \eqref{eq:vqc-model}. In this thesis $M$ is a single-qubit
+$Z$ observable unless stated otherwise, making
+$f_{\bm{\theta}} \in [-1, 1]$ a signed classification score
+\citep{mitarai2018qcl, farhi2018qnn, schuld2020circuitcentric}.
+
+\paragraph{Ansatz families.} The experiments use two representative ansätze:
+\emph{hardware-efficient} layers of single-qubit rotations plus a fixed
+entangling pattern \citep{kandala2017hardware}, chosen for shallow depth on
+real devices; and \emph{strongly entangling layers}
+\citep{schuld2020circuitcentric}, with all-to-all-leaning connectivity and
+three rotation angles per qubit per layer. Depth is swept explicitly (E3),
+since it controls both capacity and every pathology of
+Section~\ref{sec:qml-trainability}.
+
+\paragraph{Exact gradients: the parameter-shift rule.}
+For gates of the form \eqref{eq:rotation} --- generators with two eigenvalues
+$\pm\tfrac{1}{2}$ --- the derivative of \eqref{eq:vqc-model} with respect to
+the $k$-th angle is \emph{exactly}
+\begin{equation}
+  \frac{\partial f_{\bm{\theta}}}{\partial \theta_k}
+  = \frac{1}{2} \Bigl[
+      f_{\bm{\theta} + \frac{\pi}{2} \bm{e}_k}
+    - f_{\bm{\theta} - \frac{\pi}{2} \bm{e}_k}
+    \Bigr],
+  \label{eq:parameter-shift}
+\end{equation}
+two evaluations of the same circuit at shifted parameters
+\citep{mitarai2018qcl, schuld2021fourier} --- not a finite-difference
+approximation, and compatible with hardware since only expectation values are
+needed. The cost, however, scales linearly in the parameter count \emph{per
+gradient step} (two circuit evaluations per parameter, each itself averaged
+over shots), which is why gradient-based VQC training on hardware is
+prohibitive and why this thesis trains exclusively in simulation, reserving
+hardware for inference (Chapter~\ref{ch:methodology}).
+
+\paragraph{Optimizers.} Experiment E3 compares Adam \citep{kingma2015adam} on
+parameter-shift gradients with two gradient-light alternatives standard in
+the VQA literature: SPSA \citep{spall1992spsa}, which estimates a descent
+direction from two evaluations regardless of dimension and is naturally robust
+to shot noise, and the derivative-free trust-region method COBYLA
+\citep{powell1994cobyla}. The optimizer axis is treated as a first-class
+design factor (RQ2), not a nuisance setting.
+
+\section{Quantum kernel methods}
+\label{sec:qml-kernels}
+
+The encoding circuit alone already defines a learning method. The
+\emph{fidelity quantum kernel} associated with $\enc{\cdot}$ is
+\begin{equation}
+  \qkernel(\bm{x}, \bm{x}')
+  = \abs{ \braket{\phi(\bm{x})}{\phi(\bm{x}')} }^2
+  = \abs{ \bra{0^{\otimes n}} \enc{\bm{x}}^{\dagger} \enc{\bm{x}'}
+          \ket{0^{\otimes n}} }^2,
+  \label{eq:fidelity-kernel}
+\end{equation}
+a positive-semidefinite similarity measure computable on a quantum device by
+preparing $\enc{\bm{x}}^{\dagger} \enc{\bm{x}'} \ket{0^{\otimes n}}$ and
+measuring the probability of returning to $\ket{0^{\otimes n}}$ (the
+``inversion test''), at circuit depth twice that of the encoding
+\citep{havlicek2019kernels, schuld2019hilbert}. The QSVM pipeline estimates
+the Gram matrix $K_{ij} = \qkernel(\bm{x}_i, \bm{x}_j)$ --- $O(m^2)$ circuit
+families, each averaged over shots --- and hands it to the convex classical
+SVM dual \eqref{eq:svm-dual}. Against the RBF-SVM baseline
+\eqref{eq:rbf}, the QSVM differs in exactly one component, which is what
+makes the E2 comparison clean.
+
+\paragraph{Quantum models are kernel methods.}
+\citet{schuld2021kernels} sharpened the connection: the class of models
+\eqref{eq:vqc-model}, viewed as functions of the encoded density matrix
+$\rho(\bm{x}) = \ketbra{\phi(\bm{x})}{\phi(\bm{x})}$, is \emph{linear} in
+$\rho(\bm{x})$, i.e., a linear model in the feature space of density matrices
+with inner product $\Tr[\rho(\bm{x}) \rho(\bm{x}')] = \qkernel(\bm{x},
+\bm{x}')$. By representer-theorem reasoning, the loss-optimal model in that
+class is a kernel expansion over the training data --- so a trained VQC can,
+at best, match the regularized kernel machine built from
+\eqref{eq:fidelity-kernel}, and variational training is better understood as
+implicit (possibly advantageous, possibly lossy) regularization within the
+kernel's hypothesis space. This result frames E2 and E3 as two views of one
+object and cautions against narratives in which the ansatz ``adds power''
+beyond the encoding.
+
+\paragraph{Kernel diagnostics.} Two quantities computed in E2 connect kernels
+to outcomes before any SVM is trained: \emph{kernel--target alignment}, the
+normalized inner product between the Gram matrix and the ideal label kernel
+$\bm{\tilde{y}} \bm{\tilde{y}}^{\top}$, a cheap predictor of learnability; and
+the \emph{spectrum} of $K$, whose flatness signals the concentration pathology
+below. The \emph{projected quantum kernel} of \citet{huang2021power} ---
+built from reduced single-qubit density matrices,
+$\kappa^{\mathrm{PQ}}(\bm{x}, \bm{x}') = \exp\bigl( -\gamma \sum_k
+\norm{\rho_k(\bm{x}) - \rho_k(\bm{x}')}_F^2 \bigr)$ --- is included as the
+literature's main remedy: by projecting before comparing, it tempers the
+exponential-dimension geometry that drives both concentration and poor
+generalization \citep{kubler2021inductive}.
+
+\section{Model architectures}
+\label{sec:qml-architectures}
+
+Three circuit architectures span the variational side of the comparison.
+
+\paragraph{VQC.} The plain variational quantum classifier
+\eqref{eq:vqc-model}, instantiated over the grid \{angle, ZZ\} encodings
+$\times$ \{hardware-efficient, strongly entangling\} ansätze $\times$ depth
+$\{1, 3, 5\}$ --- the E3 design. Parameter counts ($3nd_{\mathrm{ansatz}}$ for
+strongly entangling layers on $n$ qubits) are logged for every run and define
+the MLP matching budgets.
+
+\paragraph{Data re-uploading classifier.} The single- or few-qubit model
+\eqref{eq:reuploading} of \citet{perezsalinas2020reuploading}, universal for
+classification on one qubit in the many-upload limit and, per
+\eqref{eq:fourier}, the cleanest experimental handle on the
+frequency-enrichment story (E4). It is also among the strongest small quantum
+models in independent benchmarks \citep{bowles2024better}, at minimal
+simulation cost.
+
+\paragraph{QCNN.} The quantum convolutional network of \citet{cong2019qcnn}
+alternates translationally-shared two-qubit ``convolution'' unitaries with
+measurement-free ``pooling'' that discards half the qubits per layer, giving
+$O(\log n)$ depth and parameter counts logarithmic in the input size; the
+classical-data variant follows \citet{hur2022qcnn}. QCNNs are the image-tier
+quantum contender (8 qubits over PCA-compressed pixel features) and are of
+special theoretical interest because the architecture is among the few with
+evidence of \emph{avoiding} barren plateaus \citep{larocca2025barren} --- at
+the price of falling within classically simulable families
+\citep{cerezo2023simulability}, a tension E5/E9 quantify in practice.
+
+\section{Trainability: barren plateaus and concentration}
+\label{sec:qml-trainability}
+
+The central obstruction to scaling variational models is not expressivity but
+\emph{trainability}. \citet{mcclean2018barren} showed that for ansätze random
+enough to approximate unitary 2-designs, gradients of cost functions like
+\eqref{eq:vqc-model} vanish in probability:
+\begin{equation}
+  \E\bigl[ \partial_{\theta_k} C \bigr] = 0,
+  \qquad
+  \Var\bigl[ \partial_{\theta_k} C \bigr] \in O\!\bigl( b^{-n} \bigr)
+  \text{ for some } b > 1,
+  \label{eq:barren}
+\end{equation}
+the \emph{barren plateau}: with overwhelming probability over random
+initializations, the loss landscape is exponentially flat in the qubit count,
+and estimating a useful gradient direction through shot noise
+\eqref{eq:shotnoise} costs exponentially many measurements.
+\citet{cerezo2021costfunction} refined the picture: with shallow
+(logarithmic-depth) ansätze, \emph{local} observables (as used throughout this
+thesis) admit gradients decaying at worst polynomially, while \emph{global}
+observables plateau at any depth --- making cost design a first-order modeling
+decision. The modern synthesis \citep{larocca2025barren} identifies
+randomness, entanglement growth, noise, and cost globality as interchangeable
+sources of the same exponential concentration; strategies that provably escape
+it (structured ansätze such as QCNNs, clever initializations, problem-tailored
+symmetry) tend to land in circuit families that are classically simulable
+\citep{cerezo2023simulability} --- arguably the sharpest form of the
+quantum-utility dilemma. Experiment E6 reproduces \eqref{eq:barren} directly,
+measuring gradient variance versus qubit count ($2$--$16$) and depth, for
+local versus global costs.
+
+Quantum kernels suffer a mirror-image pathology: \emph{exponential
+concentration} of kernel values \citep{thanasilp2024concentration}. For
+sufficiently expressive (or deep, or noisy) encodings, $\qkernel(\bm{x},
+\bm{x}')$ concentrates around a data-independent constant with deviations
+exponentially small in $n$ --- so the Gram matrix approaches a scaled
+identity, generalization collapses, and resolving the residual signal requires
+exponentially many shots. Bandwidth-style fixes (rescaling feature ranges) and
+projected kernels trade expressivity back for signal
+\citep{kubler2021inductive, huang2021power}. E2 measures kernel-value spread
+versus qubit count on this thesis's datasets. Finally, on the generalization
+side, uniform bounds scaling with trainable-gate counts \citep{caro2022generalization}
+--- and their empirical refutation as a complete story
+\citep{gilfuster2024rethinking} --- plus the effective-dimension perspective
+\citep{abbas2021power} justify treating capacity claims empirically (RQ5)
+rather than as settled theory.
+
+\section{Hybrid architectures}
+\label{sec:qml-hybrid}
+
+Hybrid models compose classical and quantum components under end-to-end or
+staged training; automatic differentiation through quantum nodes
+\citep{bergholm2018pennylane} makes the composition practical. Three designs
+enter the comparison (E5), each with a matched classical control.
+
+\paragraph{Compression front-ends.} PCA (or a small autoencoder) reduces
+$d$-dimensional inputs to the qubit budget before a VQC. This is the standard
+route for image data and doubles as the fair way to give quantum models
+high-dimensional inputs at all; the control is the same compressed features
+fed to classical heads.
+
+\paragraph{Classical feature extractor with quantum head.} A small CNN
+produces $k$ features consumed by a $k$-qubit VQC head, trained jointly; the
+control replaces the quantum head with a dense head parameter-matched to the
+VQC's angle count. This is the cleanest hybrid-versus-classical contrast in
+the thesis: identical data, identical backbone, matched capacity, single
+varying component.
+
+\paragraph{Quantum transfer learning.} Following \citet{mari2020transfer}, a
+frozen pretrained backbone feeds a trainable ``dressed quantum circuit'' ---
+classical linear map in, PQC, classical linear map out. Notably, this family
+ranked among the stronger quantum-adjacent models in independent benchmarking
+\citep{bowles2024better}, with the open question --- how much of its
+performance is the dressing rather than the quantum core --- addressed by the
+parameter-matched dressed-\emph{classical} control.
+
+Throughout, the taxonomy of Section~\ref{sec:qml-taxonomy} keeps the
+bookkeeping honest: the quantum kernel SVM is a CQ hybrid with quantum
+similarity and classical optimization; the dressed circuit is a CQ hybrid with
+classical representation learning and quantum decision surface. What the
+experiments compare is therefore not ``quantum versus classical'' as slogans,
+but specific placements of a quantum component inside otherwise-matched
+pipelines --- exactly the resolution at which RQ3 is answerable.

@@ -1,0 +1,28 @@
+\chapter{Circuit Diagrams}
+\label{app:circuits}
+\todonote{Quantikz diagrams for: angle encoding, ZZ feature map (depth 1-2),
+hardware-efficient and strongly entangling ansatz layers, re-uploading
+classifier, QCNN convolution/pooling blocks, the inversion test for fidelity
+kernels. Added when E2-E5 fix the exact circuits.}
+
+\chapter{Full Hyperparameter Tables}
+\label{app:hyperparameters}
+\todonote{Auto-generated: search spaces from \texttt{models/classical.py} (and
+quantum model files when they land); locked winning configurations from
+\texttt{experiments/configs/e1\_locked/} (and successors); the complete
+tuning-trial log lives in \texttt{results/e1\_tuning\_trials.csv} and is
+summarized here.}
+
+\chapter{Extended Result Tables}
+\label{app:results}
+\todonote{Per-metric master tables (accuracy, balanced accuracy, F1, ROC-AUC;
+tuned and default variants) from analysis/output/, plus per-(seed, fold) raw
+logs pointer.}
+
+\chapter{Guide to the Code Repository}
+\label{app:repo}
+\todonote{Layout walkthrough (data/, models/, experiments/, analysis/,
+results/, notebooks/); the reproduce-everything recipe (environment.yml,
+\texttt{make\_splits --verify}, run.py configs, analysis scripts); the append-only
+results contract and config-hash conventions; how the stored splits guarantee
+comparability across the entire thesis.}

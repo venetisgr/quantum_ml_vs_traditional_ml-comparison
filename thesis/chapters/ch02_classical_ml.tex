@@ -1,0 +1,221 @@
+\chapter{Classical Machine Learning Foundations}
+\label{ch:classical}
+
+The comparison at the heart of this thesis is only as strong as its classical
+side. This chapter fixes the supervised-learning formalism and notation, then
+reviews the model families that serve as baselines --- with particular depth on
+kernel methods, since the mathematics of Chapter~\ref{ch:qml}'s quantum kernels
+is the same mathematics --- and closes with the evaluation methodology that the
+fairness protocol of Chapter~\ref{ch:methodology} operationalizes. Standard
+references for this material are \citet{bishop2006prml} and
+\citet{hastie2009esl}.
+
+\section{Supervised learning}
+\label{sec:ml-setup}
+
+In supervised binary classification we observe a sample
+$\data = \{(\bm{x}_i, y_i)\}_{i=1}^{m}$ drawn i.i.d.\ from an unknown
+distribution $\Dcal$ over $\mathcal{X} \times \mathcal{Y}$ with
+$\mathcal{X} \subseteq \R^d$ and $\mathcal{Y} = \{0, 1\}$. A learning
+algorithm selects a hypothesis $h \colon \mathcal{X} \to \mathcal{Y}$ (often
+via a real-valued score $f$ with $h = \mathbf{1}[f \ge \tau]$) from a
+hypothesis class $\Fcal$, seeking small \emph{risk}
+\begin{equation}
+  R(h) = \E_{(\bm{x}, y) \sim \Dcal} \bigl[ \ell(h(\bm{x}), y) \bigr],
+\end{equation}
+for a loss $\ell$, while only the \emph{empirical risk}
+$\widehat{R}(h) = \tfrac{1}{m} \sum_i \ell(h(\bm{x}_i), y_i)$ is observable.
+The gap between the two is the object of generalization theory; its practical
+management --- model selection without contaminating the estimate of $R$ ---
+is the subject of Section~\ref{sec:ml-evaluation}.
+
+The classical decomposition of expected error into \emph{bias},
+\emph{variance}, and irreducible noise \citep{hastie2009esl} shapes intuition
+throughout this thesis: rich hypothesis classes (deep trees, wide networks,
+expressive quantum circuits) reduce bias at the price of variance, and
+regularization --- explicit penalties, restricted architectures, or early
+stopping --- trades back along the same curve. Two caveats are important.
+Modern over-parameterized models can defy the naive U-shaped picture
+\citep{goodfellow2016deep}, and the same caution applies to quantum models:
+expressivity arguments alone predict neither good nor bad generalization
+\citep{gilfuster2024rethinking}, which is why this thesis measures rather than
+assumes (RQ2, RQ5).
+
+\section{Linear models and logistic regression}
+\label{sec:ml-linear}
+
+The simplest score is affine, $f(\bm{x}) = \bm{w}^{\top} \bm{x} + b$.
+Logistic regression passes it through the sigmoid
+$\sigma(t) = (1 + e^{-t})^{-1}$, interprets
+$\sigma(f(\bm{x}))$ as $\Pr(y = 1 \mid \bm{x})$, and fits $(\bm{w}, b)$ by
+minimizing the $\ell_2$-regularized negative log-likelihood
+\begin{equation}
+  \min_{\bm{w}, b} \; \frac{1}{C} \cdot \frac{\norm{\bm{w}}^2}{2}
+  + \sum_{i=1}^{m} \log\!\left( 1 + e^{-\tilde{y}_i (\bm{w}^{\top}\bm{x}_i + b)} \right),
+  \qquad \tilde{y}_i = 2y_i - 1 \in \{\pm 1\},
+\end{equation}
+a smooth convex problem. Logistic regression contributes two things to this
+thesis: a floor that any nonlinear model must clear to justify its complexity,
+and a diagnostic --- tasks on which it performs at chance (the concentric
+circles and sign-parity constructions of Chapter~\ref{ch:methodology}) are
+certified to require nonlinear structure.
+
+\section{Kernel methods and support vector machines}
+\label{sec:ml-kernels}
+
+Kernel methods make nonlinearity affordable by moving it into an inner
+product. A \emph{feature map} $\phi \colon \mathcal{X} \to \Hil$ into a
+(possibly infinite-dimensional) Hilbert space defines the \emph{kernel}
+\begin{equation}
+  \kappa(\bm{x}, \bm{x}') = \braket{\phi(\bm{x})}{\phi(\bm{x}')}_{\Hil},
+  \label{eq:kernel}
+\end{equation}
+which is symmetric and positive semidefinite; conversely (Mercer), any such
+kernel is an inner product in \emph{some} feature space. Algorithms that touch
+data only through inner products can substitute $\kappa$ and operate in
+$\Hil$ implicitly --- the \emph{kernel trick}.
+
+The support vector machine (SVM) \citep{cortes1995svm} seeks the
+maximum-margin separator in $\Hil$. Its soft-margin primal,
+\begin{equation}
+  \min_{\bm{w}, b, \bm{\xi}} \;\; \frac{1}{2} \norm{\bm{w}}^2
+    + C \sum_{i=1}^{m} \xi_i
+  \quad \text{s.t.} \quad
+  \tilde{y}_i \bigl( \braket{\bm{w}}{\phi(\bm{x}_i)} + b \bigr) \ge 1 - \xi_i,
+  \;\; \xi_i \ge 0,
+\end{equation}
+has the dual
+\begin{equation}
+  \max_{\bm{\alpha}} \; \sum_{i=1}^{m} \alpha_i
+    - \frac{1}{2} \sum_{i,j=1}^{m} \alpha_i \alpha_j \tilde{y}_i \tilde{y}_j\,
+      \kappa(\bm{x}_i, \bm{x}_j)
+  \quad \text{s.t.} \quad
+  0 \le \alpha_i \le C, \;\; \textstyle\sum_i \alpha_i \tilde{y}_i = 0,
+  \label{eq:svm-dual}
+\end{equation}
+with decision function
+$f(\bm{x}) = \sum_i \alpha_i \tilde{y}_i \kappa(\bm{x}_i, \bm{x}) + b$
+supported on the training points with $\alpha_i > 0$ (the \emph{support
+vectors}). Two properties of \eqref{eq:svm-dual} matter here. First, the data
+enter only through the \emph{Gram matrix}
+$K_{ij} = \kappa(\bm{x}_i, \bm{x}_j)$ --- so any procedure that can estimate
+pairwise kernel values, including a quantum computer estimating state
+fidelities, can drive an otherwise entirely classical SVM. This is exactly the
+quantum-kernel pipeline of Section~\ref{sec:qml-kernels}, and it is why the
+SVM receives the most detailed treatment of any classical model in this
+thesis. Second, the optimization is convex: given the Gram matrix, training
+has no local-minimum or initialization pathologies, in sharp contrast to the
+variational models of Section~\ref{sec:qml-vqa}.
+
+The canonical general-purpose kernel is the radial basis function (RBF),
+\begin{equation}
+  \kappa_{\mathrm{RBF}}(\bm{x}, \bm{x}')
+    = \exp\bigl( -\gamma \norm{\bm{x} - \bm{x}'}^2 \bigr),
+  \label{eq:rbf}
+\end{equation}
+whose bandwidth $\gamma$ interpolates between nearly linear behavior
+($\gamma \to 0$) and nearest-neighbor-like memorization ($\gamma \to \infty$).
+The RBF-SVM is the single most important classical baseline in this thesis:
+it is the like-for-like classical counterpart of the quantum-kernel SVM ---
+same learning algorithm, different similarity function --- so any performance
+difference is attributable to the kernel itself.
+
+\section{Neural networks and gradient-based training}
+\label{sec:ml-nn}
+
+A multilayer perceptron (MLP) with one hidden layer of width $k$ computes
+\begin{equation}
+  f(\bm{x}) = \bm{w}_2^{\top}\, g\bigl( W_1 \bm{x} + \bm{b}_1 \bigr) + b_2,
+\end{equation}
+with an elementwise nonlinearity $g$ (ReLU in this thesis), giving
+$dk + 2k + 1$ trainable parameters. Universal-approximation results guarantee
+expressivity in the wide limit; what is actually achievable is decided by
+optimization --- non-convex, performed by stochastic gradient descent on
+mini-batches with gradients from backpropagation, in this work using the Adam
+optimizer \citep{kingma2015adam} --- and by regularization ($\ell_2$ weight
+penalties here) \citep{goodfellow2016deep}.
+
+The MLP has a designated role in the fairness protocol: it is the
+\emph{parameter-matched} classical mirror of the variational quantum
+classifier. A VQC with $p$ trainable rotation angles is compared against MLPs
+constrained to approximately $p$ parameters, so that RQ3's hybrid-vs-classical
+comparisons oppose architectures of comparable capacity rather than comparable
+marketing. Both model families also share an optimization story --- noisy
+gradient estimates of a non-convex objective --- which makes their trainability
+comparison (barren plateaus versus vanishing gradients,
+Section~\ref{sec:qml-trainability}) meaningful.
+
+\section{Ensembles: random forests and gradient boosting}
+\label{sec:ml-ensembles}
+
+Decision-tree ensembles are the strongest general-purpose baselines on small-%
+to-medium tabular data --- precisely this thesis's data regime --- and their
+absence is a recurring flaw in QML comparisons. A \emph{random forest}
+\citep{breiman2001rf} averages trees grown on bootstrap resamples with random
+feature subsetting at each split, reducing variance while keeping bias low.
+\emph{Gradient boosting} \citep{chen2016xgboost} instead builds trees
+sequentially, each fit to the gradient of the loss at the current ensemble's
+predictions, with shrinkage and subsampling controlling capacity; this work
+uses the XGBoost implementation. Neither model consumes the $[0,\pi]$ feature
+scaling in any essential way --- trees are invariant to monotone feature maps
+--- which makes them a useful control: a model family whose performance is
+unaffected by the encoding-motivated preprocessing shared across the
+comparison.
+
+\section{Instance-based learning}
+\label{sec:ml-knn}
+
+$k$-nearest-neighbors classifies by majority vote among the $k$ closest
+training points under a Minkowski metric. It is included as the minimal
+``pure memorization'' baseline: no training, no parametric structure, purely
+local generalization. Its behavior on the engineered synthetic tasks is
+diagnostic --- it excels when local neighborhoods are label-pure (moons,
+circles) and degrades when they are not (the sign-parity construction, where
+distractor dimensions corrupt the metric) --- providing a reference point that
+separates ``the task needs nonlinearity'' from ``the task needs
+\emph{non-local} structure.''
+
+\section{Evaluation methodology}
+\label{sec:ml-evaluation}
+
+\paragraph{Metrics.}
+Accuracy is the headline metric on balanced tasks but degrades to
+uninformativeness under imbalance. This thesis therefore reports four
+complementary quantities per evaluation: \emph{accuracy};
+\emph{balanced accuracy}, the mean of per-class recalls, robust to the
+moderate imbalance of several included datasets; $F_1$, the harmonic mean of
+precision and recall for the positive class; and \emph{ROC-AUC}, the
+probability that a random positive instance outscores a random negative one,
+which evaluates the score function independently of a threshold.
+
+\paragraph{Resampling.}
+A single train/test split yields a point estimate whose variance is unknown.
+The protocol here uses $k$-fold \emph{stratified} cross-validation ($k = 5$),
+which preserves class proportions per fold, repeated over five different
+shuffling seeds --- 25 evaluations per model--dataset pair --- reporting means
+and standard deviations across folds. Crucially, the split indices are
+generated \emph{once}, stored, and reused by every model ever compared:
+resampling variance then cancels in model comparisons, turning the folds into
+matched pairs.
+
+\paragraph{Hyperparameter optimization without leakage.}
+Hyperparameters must be selected using training data only; selecting them on
+test folds is the most common form of optimistic bias. The protocol fixes a
+matched budget --- one 50-trial Optuna study \citep{akiba2019optuna} per
+model--dataset pair, using the tree-structured Parzen estimator sampler with a
+fixed seed, each trial scored by an internal 3-fold cross-validation confined
+to the training portion of one designated outer fold --- after which the
+selected configuration is frozen and evaluated on all 25 outer folds. The
+residual weakness of this design (the tuning fold's training data reappears in
+other folds' evaluations) is deliberate, tractability-motivated, and assessed
+in Chapter~\ref{ch:discussion}; its key property is \emph{symmetry}: every
+model, classical or quantum, is tuned by exactly the same procedure with
+exactly the same budget \citep{bowles2024better}.
+
+\paragraph{Statistical comparison.}
+With 25 paired evaluations per model pair, per-dataset differences are tested
+with the paired Wilcoxon signed-rank test, and comparisons across the whole
+dataset suite follow the rank-based methodology of \citet{demsar2006comparisons},
+including critical-difference diagrams for the headline comparison.
+Significance levels are stated in advance in Chapter~\ref{ch:methodology};
+non-significant differences are reported as such rather than narrativized.

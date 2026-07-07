@@ -18,5 +18,19 @@ venv/
 .vscode/
 .idea/
 
+# LaTeX build artifacts (thesis/)
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.synctex.gz
+*.toc
+thesis/main.pdf
+
 # NOTE: data/splits/ and results/ are deliberately git-tracked — the fairness
 # protocol depends on them (CLAUDE.md, docs/groundwork.md §8). Never ignore them.

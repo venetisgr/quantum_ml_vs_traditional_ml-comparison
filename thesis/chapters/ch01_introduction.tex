@@ -1,0 +1,158 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Motivation}
+\label{sec:intro-motivation}
+
+Machine learning and quantum computing are, individually, two of the most
+consequential computational developments of the past two decades. Their
+intersection --- \emph{quantum machine learning} (QML) --- has attracted
+extraordinary attention, driven by the prospect that quantum computers might
+learn from data in ways that classical computers cannot
+\citep{biamonte2017qml, schuld2021book}. Parameterized quantum circuits can
+represent functions in Hilbert spaces whose dimension grows exponentially with
+the number of qubits, and quantum kernels can measure similarities between data
+points embedded in those spaces \citep{havlicek2019kernels, schuld2019hilbert}.
+On paper, this looks like a recipe for more expressive models.
+
+The empirical record is far more ambiguous. The devices available today ---
+noisy intermediate-scale quantum (NISQ) hardware \citep{preskill2018nisq} ---
+support only small, shallow circuits. Provable quantum--classical learning
+separations exist but are confined to carefully constructed problems
+\citep{liu2021rigorous}, and a growing body of work shows that classical models
+given access to the same data often match or exceed quantum models on the
+benchmarks actually used in the literature \citep{huang2021power,
+bowles2024better, schnabel2025scrutiny}. At the same time, methodological
+audits of published QML studies find recurring flaws that systematically favor
+the quantum contender: tuned quantum models compared against default-configured
+classical baselines, cherry-picked datasets, inconsistent data splits, and
+metrics aggregated across incompatible execution regimes
+\citep{bowles2024better}.
+
+This thesis takes the tension between promise and evidence as its starting
+point. Rather than asking whether quantum machine learning is ``better'' in the
+abstract, it asks a narrower, answerable question: \emph{under carefully matched
+conditions --- identical data splits, identical preprocessing, identical
+hyperparameter-search budgets, and parameter-matched architectures --- how do
+quantum and hybrid models actually compare to strong classical baselines on
+standard benchmark tasks, and which design factors drive the differences?}
+Answering this requires as much care in experimental methodology as in quantum
+theory, and the methodological framework is itself one of the main
+contributions of this work.
+
+\section{Research questions}
+\label{sec:intro-rqs}
+
+Five research questions drive both the theoretical treatment and the
+experimental programme of this thesis.
+
+\begin{description}
+  \item[RQ1 (Performance).] Under matched data, preprocessing, and
+  hyperparameter-search budgets, how do quantum models --- quantum kernels and
+  variational quantum classifiers --- compare to strong classical baselines in
+  accuracy, balanced accuracy, $F_1$, and ROC-AUC?
+
+  \item[RQ2 (Design factors).] How do the data-encoding strategy, ansatz
+  choice, circuit depth, and entanglement structure affect quantum-model
+  performance and trainability?
+
+  \item[RQ3 (Hybrid value).] Do hybrid architectures --- classical feature
+  extraction feeding a quantum head, quantum kernels inside a classical SVM,
+  quantum transfer learning --- outperform either pure approach at matched
+  parameter counts?
+
+  \item[RQ4 (Robustness and cost).] How do finite sampling (shot noise),
+  simulated device noise, and real quantum hardware affect the results, and
+  what are the actual resource costs --- wall-clock time, parameter counts,
+  circuit depth, and shot budgets?
+
+  \item[RQ5 (Data regime).] Does the relative performance of classical,
+  quantum, and hybrid models change with the training-set size and the feature
+  dimensionality?
+\end{description}
+
+\section{Scope and honest framing}
+\label{sec:intro-framing}
+
+A thesis-scale experimental programme can reach system sizes of roughly ten to
+twenty qubits. Every quantum model studied here can therefore be simulated
+classically --- indeed, most experiments in this thesis \emph{are} exact
+statevector simulations, by design. It follows that \textbf{this thesis cannot,
+even in principle, demonstrate quantum advantage}: any task its quantum models
+solve is, by construction, solvable classically at the same scale. What it can
+do --- and what the strongest recent benchmark literature argues is currently
+the most valuable contribution \citep{bowles2024better, schnabel2025scrutiny}
+--- is measure the \emph{empirical competitiveness and behavior of quantum
+models at NISQ scale} under a protocol fair enough that the observed
+differences mean something. Claims in this thesis are therefore claims about
+performance, trainability, robustness, and cost at the scales studied, never
+about asymptotic separation. Where the literature offers provable separations
+\citep{liu2021rigorous} or arguments about the role of data access
+\citep{huang2021power}, they are treated in Chapter~\ref{ch:related} as context
+for interpreting the empirical results, not as claims this thesis tests at
+scale.
+
+The scope is further restricted to \emph{supervised binary classification} on
+standard benchmark datasets --- synthetic constructions with controlled
+structure, small tabular datasets, and reduced image data --- the setting in
+which the comparative literature is concentrated and in which matched
+conditions are achievable within a Master's project. Multi-class extensions,
+regression, generative models, and learning on inherently quantum data are
+discussed as outlook.
+
+\section{Contributions}
+\label{sec:intro-contributions}
+
+The main contributions of this thesis are:
+
+\begin{enumerate}
+  \item \textbf{A fairness-first experimental protocol}, specified before any
+  quantum model was trained: all models --- classical, quantum, and hybrid ---
+  share identical stored cross-validation splits (5-fold stratified, five
+  seeds), identical $[0,\pi]$ feature scaling fit on training folds only,
+  an identical hyperparameter-optimization budget (one 50-trial Optuna study
+  per model--dataset pair under a fixed procedure), parameter-matched
+  neural-network baselines, and strict separation of execution regimes (exact
+  simulation, finite shots, noisy simulation, hardware) in all reported
+  results.
+
+  \item \textbf{A systematic empirical comparison} of seven classical
+  baselines, quantum kernel methods, variational quantum classifiers, and
+  hybrid architectures across ten benchmark datasets spanning saturated to
+  genuinely hard, including controlled synthetic tasks (interleaved half-moons,
+  concentric circles, and a sign-parity task with distractor dimensions
+  designed to separate model families).
+
+  \item \textbf{Focused design-factor studies}: a data-encoding ablation
+  connected to the Fourier-expressivity theory of parameterized circuits
+  \citep{schuld2021fourier}; a trainability study reproducing barren-plateau
+  scaling \citep{mcclean2018barren}; sample-efficiency learning curves; and a
+  noise ladder from exact simulation through calibrated device-noise models to
+  validation runs on IBM quantum hardware.
+
+  \item \textbf{A fully reproducible, open research artifact}: every figure and
+  table in this document is generated by a version-controlled script from
+  append-only result logs carrying configuration hashes, seeds, and split
+  identifiers; the stored splits and locked hyperparameter configurations are
+  part of the repository.
+\end{enumerate}
+
+\section{Thesis outline}
+\label{sec:intro-outline}
+
+Chapter~\ref{ch:classical} reviews the classical machine-learning foundations
+the comparison rests on, with emphasis on kernel methods and evaluation
+methodology. Chapter~\ref{ch:quantum} introduces the quantum-computing
+concepts required for the remainder: states, gates, measurement, and the
+realities of NISQ devices. Chapter~\ref{ch:qml} develops quantum machine
+learning in depth --- data encodings and their expressivity consequences,
+variational quantum algorithms, quantum kernel methods, the main circuit
+architectures, trainability obstacles, and hybrid designs.
+Chapter~\ref{ch:related} surveys comparative studies and the quantum-advantage
+debate, positioning this thesis within that literature.
+Chapter~\ref{ch:methodology} specifies the datasets, the model zoo, and the
+fairness protocol in full detail. Chapter~\ref{ch:experiments} reports the
+experimental results, one experiment family at a time, each stated as a
+hypothesis before its outcome. Chapter~\ref{ch:discussion} synthesizes the
+findings across research questions and examines threats to validity, and
+Chapter~\ref{ch:conclusion} concludes with directions for future work.
